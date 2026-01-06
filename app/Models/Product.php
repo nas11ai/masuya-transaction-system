@@ -27,6 +27,12 @@ class Product extends Model
         ];
     }
 
+    // Relationships
+    public function transactionDetails()
+    {
+        return $this->hasMany(TransactionDetail::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -39,5 +45,16 @@ class Product extends Model
             $q->where('code', 'like', "%{$search}%")
                 ->orWhere('name', 'like', "%{$search}%");
         });
+    }
+
+    // Helper Methods
+    public function hasTransactions(): bool
+    {
+        return $this->transactionDetails()->exists();
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return !$this->hasTransactions();
     }
 }
