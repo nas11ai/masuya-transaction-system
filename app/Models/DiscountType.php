@@ -26,6 +26,12 @@ class DiscountType extends Model
         ];
     }
 
+    // Relationships
+    public function transactionDetailDiscounts()
+    {
+        return $this->hasMany(TransactionDetailDiscount::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {

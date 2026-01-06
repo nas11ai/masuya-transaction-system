@@ -43,6 +43,11 @@ class TransactionDetail extends Model
         return $this->belongsTo(Product::class);
     }
 
+    public function discounts()
+    {
+        return $this->hasMany(TransactionDetailDiscount::class)->orderBy('sequence');
+    }
+
     // Helper Methods
     public function calculateNetPrice(): float
     {
