@@ -33,6 +33,11 @@ class Product extends Model
         return $this->hasMany(TransactionDetail::class);
     }
 
+    public function stockMovements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {

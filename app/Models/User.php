@@ -56,6 +56,11 @@ class User extends Authenticatable
         return $this->hasMany(Transaction::class, 'created_by');
     }
 
+    public function stockMovements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {
