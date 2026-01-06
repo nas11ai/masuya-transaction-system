@@ -50,6 +50,12 @@ class User extends Authenticatable
         ];
     }
 
+    // Relationships
+    public function createdTransactions()
+    {
+        return $this->hasMany(Transaction::class, 'created_by');
+    }
+
     // Scopes
     public function scopeActive($query)
     {

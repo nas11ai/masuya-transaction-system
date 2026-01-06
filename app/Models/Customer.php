@@ -30,6 +30,12 @@ class Customer extends Model
         ];
     }
 
+    // Relationships
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -47,6 +53,16 @@ class Customer extends Model
     }
 
     // Helper Methods
+    public function hasTransactions(): bool
+    {
+        return $this->transactions()->exists();
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return !$this->hasTransactions();
+    }
+
     public function getFullAddress(): string
     {
         return implode(', ', array_filter([
