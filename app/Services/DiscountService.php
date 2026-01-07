@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\Repositories\DiscountTypeRepositoryInterface;
+use App\Enums\DiscountType;
 
 class DiscountService
 {
@@ -27,7 +28,7 @@ class DiscountService
         foreach ($discounts as $index => $discount) {
             $discountAmount = 0;
 
-            if ($discount['type'] === 'percentage') {
+            if ($discount['type'] === DiscountType::PERCENTAGE) {
                 $discountAmount = round($currentPrice * ($discount['value'] / 100), 2);
             } else {
                 $discountAmount = min($discount['value'], $currentPrice);

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Contracts\Repositories\ProductRepositoryInterface;
 use App\Contracts\Repositories\StockMovementRepositoryInterface;
+use App\Enums\StockMovementType;
 use Illuminate\Support\Facades\DB;
 
 class StockService
@@ -27,7 +28,7 @@ class StockService
             return $this->stockMovementRepository->createMovement([
                 'product_id' => $productId,
                 'user_id' => $userId,
-                'type' => 'in',
+                'type' => StockMovementType::IN,
                 'qty' => $qty,
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
@@ -55,7 +56,7 @@ class StockService
                 'product_id' => $productId,
                 'transaction_id' => $transactionId,
                 'user_id' => $userId,
-                'type' => 'out',
+                'type' => StockMovementType::OUT,
                 'qty' => -$qty,
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
@@ -78,7 +79,7 @@ class StockService
             return $this->stockMovementRepository->createMovement([
                 'product_id' => $productId,
                 'user_id' => $userId,
-                'type' => 'adjustment',
+                'type' => StockMovementType::ADJUSTMENT,
                 'qty' => $difference,
                 'stock_before' => $stockBefore,
                 'stock_after' => $newStock,
