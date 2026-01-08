@@ -1,0 +1,1179 @@
+openapi: 3.0.3
+info:
+  title: Masuya API
+  description: API documentation for Masuya transaction system
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Local Development Server
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Products
+    description: Product management
+  - name: Customers
+    description: Customer management
+  - name: Discount Types
+    description: Discount type management
+  - name: Transactions
+    description: Transaction management
+  - name: Stock Movements
+    description: Stock movement tracking
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+        description:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        province:
+          type: string
+        city:
+          type: string
+        district:
+          type: string
+        sub_district:
+          type: string
+        postal_code:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DiscountType:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [percentage, fixed]
+        value:
+          type: number
+        description:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        invoice_no:
+          type: string
+        customer_id:
+          type: integer
+        invoice_date:
+          type: string
+          format: date
+        subtotal:
+          type: number
+        total_discount:
+          type: number
+        grand_total:
+          type: number
+        status:
+          type: string
+          enum: [pending, completed, cancelled]
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    StockMovement:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        type:
+          type: string
+          enum: [in, out, adjustment]
+        qty:
+          type: integer
+        stock_before:
+          type: integer
+        stock_after:
+          type: integer
+        reference_type:
+          type: string
+        reference_id:
+          type: integer
+        reference_no:
+          type: string
+        notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+                - password_confirmation
+              properties:
+                name:
+                  type: string
+                  example: Admin User
+                email:
+                  type: string
+                  format: email
+                  example: admin@masuya.com
+                password:
+                  type: string
+                  format: password
+                  example: password123
+                password_confirmation:
+                  type: string
+                  format: password
+                  example: password123
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  token:
+                    type: string
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@masuya.com
+                password:
+                  type: string
+                  format: password
+                  example: password123
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  token:
+                    type: string
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get authenticated user profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Product"
+                  meta:
+                    type: object
+                  links:
+                    type: object
+
+    post:
+      tags:
+        - Products
+      summary: Create new product
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - name
+                - price
+                - stock
+              properties:
+                code:
+                  type: string
+                  example: PROD001
+                name:
+                  type: string
+                  example: Laptop Asus ROG
+                price:
+                  type: number
+                  example: 15000000
+                stock:
+                  type: integer
+                  example: 10
+                description:
+                  type: string
+                  example: Gaming laptop with RTX 4060
+                is_active:
+                  type: boolean
+                  example: true
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - Products
+      summary: Update product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: Laptop Asus ROG Updated
+                price:
+                  type: number
+                  example: 14500000
+                stock:
+                  type: integer
+                  example: 8
+                description:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Products
+      summary: Delete product
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/products/low-stock:
+    get:
+      tags:
+        - Products
+      summary: Get low stock products
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: threshold
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of low stock products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+  /api/customers:
+    get:
+      tags:
+        - Customers
+      summary: Get all customers
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+      responses:
+        "200":
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Customer"
+                  meta:
+                    type: object
+                  links:
+                    type: object
+
+    post:
+      tags:
+        - Customers
+      summary: Create new customer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - name
+              properties:
+                code:
+                  type: string
+                  example: CUST001
+                name:
+                  type: string
+                  example: PT Maju Jaya
+                address:
+                  type: string
+                  example: Jl. Sudirman No. 123
+                province:
+                  type: string
+                  example: DKI Jakarta
+                city:
+                  type: string
+                  example: Jakarta Pusat
+                district:
+                  type: string
+                  example: Tanah Abang
+                sub_district:
+                  type: string
+                  example: Petamburan
+                postal_code:
+                  type: string
+                  example: "10260"
+                phone:
+                  type: string
+                  example: 021-12345678
+                email:
+                  type: string
+                  format: email
+                  example: info@majujaya.com
+                is_active:
+                  type: boolean
+                  example: true
+      responses:
+        "201":
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/customers/{id}:
+    get:
+      tags:
+        - Customers
+      summary: Get customer by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - Customers
+      summary: Update customer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                phone:
+                  type: string
+                  example: 021-87654321
+                email:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        "200":
+          description: Customer updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Customers
+      summary: Delete customer
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Customer deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/discount-types:
+    get:
+      tags:
+        - Discount Types
+      summary: Get all discount types
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of discount types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiscountType"
+
+    post:
+      tags:
+        - Discount Types
+      summary: Create new discount type
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - name
+                - type
+                - value
+              properties:
+                code:
+                  type: string
+                  example: MEMBER10
+                name:
+                  type: string
+                  example: Member Discount 10%
+                type:
+                  type: string
+                  enum: [percentage, fixed]
+                  example: percentage
+                value:
+                  type: number
+                  example: 10
+                description:
+                  type: string
+                  example: Standard member discount
+                is_active:
+                  type: boolean
+                  example: true
+      responses:
+        "201":
+          description: Discount type created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountType"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/discount-types/active:
+    get:
+      tags:
+        - Discount Types
+      summary: Get active discount types
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of active discount types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DiscountType"
+
+  /api/transactions:
+    get:
+      tags:
+        - Transactions
+      summary: Get all transactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 15
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, cancelled]
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                  meta:
+                    type: object
+                  links:
+                    type: object
+
+    post:
+      tags:
+        - Transactions
+      summary: Create new transaction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customer_id
+                - invoice_date
+                - items
+              properties:
+                customer_id:
+                  type: integer
+                  example: 1
+                invoice_date:
+                  type: string
+                  format: date
+                  example: "2025-01-08"
+                notes:
+                  type: string
+                  example: First order
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - product_id
+                      - qty
+                      - price
+                    properties:
+                      product_id:
+                        type: integer
+                        example: 1
+                      qty:
+                        type: integer
+                        example: 2
+                      price:
+                        type: number
+                        example: 15000000
+                      discounts:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            discount_type_id:
+                              type: integer
+                            name:
+                              type: string
+                            type:
+                              type: string
+                              enum: [percentage, fixed]
+                            value:
+                              type: number
+      responses:
+        "201":
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/transactions/{id}:
+    get:
+      tags:
+        - Transactions
+      summary: Get transaction by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Transactions
+      summary: Delete transaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "404":
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/transactions/invoice/{invoice_no}:
+    get:
+      tags:
+        - Transactions
+      summary: Get transaction by invoice number
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoice_no
+          in: path
+          required: true
+          schema:
+            type: string
+          example: INV2501/0001
+      responses:
+        "200":
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/transactions/{id}/complete:
+    post:
+      tags:
+        - Transactions
+      summary: Complete transaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/transactions/{id}/cancel:
+    post:
+      tags:
+        - Transactions
+      summary: Cancel transaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transaction cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/stock-movements:
+    get:
+      tags:
+        - Stock Movements
+      summary: Get all stock movements
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: product_id
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [in, out, adjustment]
+      responses:
+        "200":
+          description: List of stock movements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockMovement"
+
+  /api/stock-movements/add:
+    post:
+      tags:
+        - Stock Movements
+      summary: Add stock
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - qty
+              properties:
+                product_id:
+                  type: integer
+                  example: 1
+                qty:
+                  type: integer
+                  example: 50
+                reference_no:
+                  type: string
+                  example: PO-2025-001
+                notes:
+                  type: string
+                  example: Restock from supplier
+      responses:
+        "201":
+          description: Stock added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockMovement"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/stock-movements/adjust:
+    post:
+      tags:
+        - Stock Movements
+      summary: Adjust stock
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - new_stock
+              properties:
+                product_id:
+                  type: integer
+                  example: 1
+                new_stock:
+                  type: integer
+                  example: 100
+                notes:
+                  type: string
+                  example: Stock opname correction
+      responses:
+        "201":
+          description: Stock adjusted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StockMovement"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
