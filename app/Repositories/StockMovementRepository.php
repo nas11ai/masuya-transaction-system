@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Contracts\Repositories\StockMovementRepositoryInterface;
+use Illuminate\Database\Eloquent\Model;
 use App\Models\StockMovement;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -53,5 +54,32 @@ class StockMovementRepository extends BaseRepository implements StockMovementRep
     {
         $data['created_at'] = now();
         return $this->model->create($data);
+    }
+    public function paginateWithFilters(array $filters, int $perPage = 15): LengthAwarePaginator
+    {
+        $query = $this->model
+            ->with(['product', 'user', 'transaction'])
+            ->latest('created_at');
+
+        if (!empty($filters['product_id'])) {
+            $query->where('product_id', $filters['product_id']);
+        }
+
+        if (!empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+
+        if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
+            $query->whereBetween('created_at', [
+                $filters['start_date'],
+                $filters['end_date']
+            ]);
+        }
+
+        if (!empty($filters['user_id'])) {
+            $query->where('user_id', $filters['user_id']);
+        }
+
+        return $query->paginate($perPage);
     }
 }

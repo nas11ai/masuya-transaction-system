@@ -15,6 +15,12 @@ class StockService
     ) {
     }
 
+    public function getAllStockMovements(array $filters = [], int $perPage = 15)
+    {
+        return $this->stockMovementRepository
+            ->paginateWithFilters($filters, $perPage);
+    }
+
     public function addStock(int $productId, int $qty, int $userId, ?string $referenceNo = null, ?string $notes = null)
     {
         return DB::transaction(function () use ($productId, $qty, $userId, $referenceNo, $notes) {
