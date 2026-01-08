@@ -1,0 +1,420 @@
+@startuml Masuya_Transaction_System_ERD_Spatie
+
+!define primary_key(x) <b><color:#b8861b><&key></color> x</b>
+!define foreign_key(x) <color:#aaaaaa><&key></color> x
+!define column(x) <color:#efefef><&media-record></color> x
+
+' Styling - keep default colors, only style notes
+skinparam linetype ortho
+skinparam roundcorner 5
+
+skinparam note {
+    BackgroundColor #ffffcc
+    BorderColor #999999
+    FontColor #333333
+}
+
+skinparam package {
+    BackgroundColor #e8f4f8
+    BorderColor #0066cc
+    FontColor #0066cc
+    FontSize 12
+    FontStyle bold
+}
+
+' ==================== USER MANAGEMENT (SPATIE) ====================
+
+package "Laravel Spatie Permission" {
+
+    entity "users" as users {
+        primary_key(id): BIGINT UNSIGNED
+        --
+        column(name): VARCHAR(255)
+        column(email): VARCHAR(255) <<UNIQUE>>
+        column(password): VARCHAR(255)
+        column(is_active): BOOLEAN <<DEFAULT TRUE>>
+        column(remember_token): VARCHAR(100) <<NULLABLE>>
+        --
+        column(created_at): TIMESTAMP
+        column(updated_at): TIMESTAMP
+    }
+
+    entity "roles" as roles {
+        primary_key(id): BIGINT UNSIGNED
+        --
+        column(name): VARCHAR(255) <<UNIQUE>>
+        column(guard_name): VARCHAR(255)
+        --
+        column(created_at): TIMESTAMP
+        column(updated_at): TIMESTAMP
+    }
+
+    entity "permissions" as permissions {
+        primary_key(id): BIGINT UNSIGNED
+        --
+        column(name): VARCHAR(255) <<UNIQUE>>
+        column(guard_name): VARCHAR(255)
+        --
+        column(created_at): TIMESTAMP
+        column(updated_at): TIMESTAMP
+    }
+
+    entity "model_has_roles" as model_has_roles {
+        foreign_key(role_id): BIGINT UNSIGNED
+        foreign_key(model_id): BIGINT UNSIGNED
+        --
+        column(model_type): VARCHAR(255)
+        --
+        **Primary Key: (role_id, model_id, model_type)**
+    }
+
+    entity "model_has_permissions" as model_has_permissions {
+        foreign_key(permission_id): BIGINT UNSIGNED
+        foreign_key(model_id): BIGINT UNSIGNED
+        --
+        column(model_type): VARCHAR(255)
+        --
+        **Primary Key: (permission_id, model_id, model_type)**
+    }
+
+    entity "role_has_permissions" as role_has_permissions {
+        foreign_key(permission_id): BIGINT UNSIGNED
+        foreign_key(role_id): BIGINT UNSIGNED
+        --
+        **Primary Key: (permission_id, role_id)**
+    }
+
+    ' Spatie Internal Relationships
+    users }o--o{ model_has_roles
+    model_has_roles }o--|| roles
+
+    users }o--o{ model_has_permissions
+    model_has_permissions }o--|| permissions
+
+    roles }o--o{ role_has_permissions
+    role_has_permissions }o--|| permissions
+}
+
+' ==================== MASTER DATA ====================
+
+entity "products" as products {
+    primary_key(id): BIGINT UNSIGNED
+    --
+    column(code): VARCHAR(50) <<UNIQUE>>
+    column(name): VARCHAR(255)
+    column(price): DECIMAL(15,2)
+    column(stock): INT
+    column(description): TEXT <<NULLABLE>>
+    column(is_active): BOOLEAN <<DEFAULT TRUE>>
+    --
+    column(created_at): TIMESTAMP
+    column(updated_at): TIMESTAMP
+}
+
+entity "customers" as customers {
+    primary_key(id): BIGINT UNSIGNED
+    --
+    column(code): VARCHAR(50) <<UNIQUE>>
+    column(name): VARCHAR(255)
+    column(address): TEXT
+    column(province): VARCHAR(100)
+    column(city): VARCHAR(100)
+    column(district): VARCHAR(100)
+    column(sub_district): VARCHAR(100)
+    column(postal_code): VARCHAR(10)
+    column(phone): VARCHAR(20) <<NULLABLE>>
+    column(email): VARCHAR(255) <<NULLABLE>>
+    column(is_active): BOOLEAN <<DEFAULT TRUE>>
+    --
+    column(created_at): TIMESTAMP
+    column(updated_at): TIMESTAMP
+}
+
+' ==================== TRANSACTIONS ====================
+
+entity "transactions" as transactions {
+    primary_key(id): BIGINT UNSIGNED
+    --
+    foreign_key(customer_id): BIGINT UNSIGNED
+    foreign_key(created_by): BIGINT UNSIGNED
+    --
+    column(invoice_no): VARCHAR(50) <<UNIQUE>>
+    column(invoice_date): DATE
+    column(subtotal): DECIMAL(15,2)
+    column(discount_total): DECIMAL(15,2)
+    column(total): DECIMAL(15,2)
+    --
+    ' Snapshot customer info (for historical data)
+    column(customer_code): VARCHAR(50)
+    column(customer_name): VARCHAR(255)
+    column(customer_address): TEXT
+    --
+    column(notes): TEXT <<NULLABLE>>
+    column(status): ENUM('draft','completed','cancelled')
+    --
+    column(created_at): TIMESTAMP
+    column(updated_at): TIMESTAMP
+    column(deleted_at): TIMESTAMP <<NULLABLE>>
+}
+
+entity "transaction_details" as transaction_details {
+    primary_key(id): BIGINT UNSIGNED
+    --
+    foreign_key(transaction_id): BIGINT UNSIGNED
+    foreign_key(product_id): BIGINT UNSIGNED
+    --
+    ' Snapshot product info (for historical data)
+    column(product_code): VARCHAR(50)
+    column(product_name): VARCHAR(255)
+    --
+    column(qty): INT
+    column(price): DECIMAL(15,2)
+    column(discount_amount): DECIMAL(15,2) <<DEFAULT 0>>
+    column(net_price): DECIMAL(15,2)
+    column(subtotal): DECIMAL(15,2)
+    --
+    column(created_at): TIMESTAMP
+    column(updated_at): TIMESTAMP
+}
+
+' ==================== DISCOUNT SYSTEM ====================
+
+entity "discount_types" as discount_types {
+    primary_key(id): BIGINT UNSIGNED
+    --
+    column(code): VARCHAR(50) <<UNIQUE>>
+    column(name): VARCHAR(100)
+    column(type): ENUM('percentage','fixed')
+    column(value): DECIMAL(15,2)
+    column(is_active): BOOLEAN <<DEFAULT TRUE>>
+    column(description): TEXT <<NULLABLE>>
+    --
+    column(created_at): TIMESTAMP
+    column(updated_at): TIMESTAMP
+}
+
+entity "transaction_detail_discounts" as transaction_detail_discounts {
+    primary_key(id): BIGINT UNSIGNED
+    --
+    foreign_key(transaction_detail_id): BIGINT UNSIGNED
+    foreign_key(discount_type_id): BIGINT UNSIGNED <<NULLABLE>>
+    --
+    column(sequence): INT
+    column(discount_name): VARCHAR(100)
+    column(discount_type): ENUM('percentage','fixed')
+    column(discount_value): DECIMAL(15,2)
+    column(discount_amount): DECIMAL(15,2)
+    --
+    column(created_at): TIMESTAMP
+    column(updated_at): TIMESTAMP
+}
+
+' ==================== AUDIT LOG ====================
+
+entity "stock_movements" as stock_movements {
+    primary_key(id): BIGINT UNSIGNED
+    --
+    foreign_key(product_id): BIGINT UNSIGNED
+    foreign_key(transaction_id): BIGINT UNSIGNED <<NULLABLE>>
+    foreign_key(user_id): BIGINT UNSIGNED
+    --
+    column(type): ENUM('in','out','adjustment')
+    column(qty): INT
+    column(stock_before): INT
+    column(stock_after): INT
+    column(reference_no): VARCHAR(100) <<NULLABLE>>
+    column(notes): TEXT <<NULLABLE>>
+    --
+    column(created_at): TIMESTAMP
+}
+
+' ==================== RELATIONSHIPS ====================
+
+' Transactions (outside package)
+transactions }o--|| customers : "belongs to"
+transactions }o--|| users : "created by"
+
+transaction_details }o--|| transactions : "belongs to"
+transaction_details }o--|| products : "references"
+
+' Discounts
+transaction_detail_discounts }o--|| transaction_details : "applied to"
+transaction_detail_discounts }o--o| discount_types : "uses type"
+
+' Stock Movements
+stock_movements }o--|| products : "affects"
+stock_movements }o--o| transactions : "from transaction"
+stock_movements }o--|| users : "recorded by"
+
+' ==================== NOTES ====================
+
+note right of roles
+  **Spatie Roles:**
+  Dibuat melalui migrasi Spatie
+
+  **Contoh Role:**
+  • super-admin
+  • admin
+  • kasir
+  • manajer-stok
+  • manajer
+
+  **Penggunaan:**
+  User dapat memiliki beberapa role
+  $user->assignRole('admin');
+end note
+
+note right of permissions
+  **Spatie Permissions:**
+  Kontrol akses yang detail
+
+  **Contoh Permission:**
+  • products.view
+  • products.create
+  • products.update
+  • products.delete
+  • transactions.create
+  • transactions.void
+  • reports.view
+
+  **Penggunaan:**
+  $role->givePermissionTo('products.create');
+  $user->givePermissionTo('reports.view');
+end note
+
+note right of model_has_roles
+  **Pivot Polymorphic:**
+  • model_type = 'App\\Models\\User'
+  • model_id = user.id
+  • role_id = roles.id
+
+  Memungkinkan model apapun memiliki role
+  (tidak hanya User)
+end note
+
+note right of model_has_permissions
+  **Permission Langsung:**
+  User dapat memiliki permission
+  langsung tanpa melalui role
+
+  Berguna untuk pengecualian khusus:
+  $user->givePermissionTo('akses-khusus');
+end note
+
+note right of role_has_permissions
+  **Permission Role:**
+  Mendefinisikan permission apa saja
+  yang dimiliki setiap role
+
+  Contoh:
+  kasir → transactions.create
+  admin → products.*, customers.*
+end note
+
+note right of products
+  **Aturan Bisnis:**
+  • Kode harus alfanumerik saja
+  • Tidak dapat dihapus jika ada transaksi
+  • Stok dilacak melalui stock_movements
+
+  **Permission:**
+  • products.view
+  • products.create
+  • products.update
+  • products.delete
+end note
+
+note right of customers
+  **Aturan Bisnis:**
+  • Kode harus alfanumerik saja
+  • Tidak dapat dihapus jika ada transaksi
+  • is_active untuk soft deactivation
+
+  **Permission:**
+  • customers.view
+  • customers.create
+  • customers.update
+  • customers.delete
+end note
+
+note right of transactions
+  **Format Nomor Invoice:**
+  INV/YYMM/0001
+  • Dibuat otomatis dengan reset bulanan
+
+  **Pendekatan Hybrid:**
+  • customer_id (FK) untuk integritas relasional
+  • Snapshot kode/nama/alamat untuk historis
+
+  **Alur Status:**
+  draft → completed → cancelled
+  Hanya completed yang mempengaruhi stok
+
+  **Permission:**
+  • transactions.view
+  • transactions.create
+  • transactions.update
+  • transactions.void
+  • transactions.delete
+end note
+
+note right of transaction_details
+  **Override Harga:**
+  Harga dapat diedit saat transaksi
+  (berbeda dari harga master produk)
+
+  **Perhitungan:**
+  1. Mulai dari harga
+  2. Terapkan diskon bertingkat
+  3. net_price = harga final setelah diskon
+  4. subtotal = net_price × qty
+
+  **Snapshot:**
+  product_code & product_name tersimpan
+end note
+
+note right of discount_types
+  **Master Diskon:**
+  Template diskon yang sudah didefinisikan
+  • percentage: 10%, 20%, dll
+  • fixed: Rp 5.000, Rp 10.000
+
+  Dapat diterapkan ke detail transaksi
+  atau diskon custom per transaksi
+
+  **Permission:**
+  • discounts.view
+  • discounts.manage
+end note
+
+note right of transaction_detail_discounts
+  **Sistem Diskon Fleksibel:**
+  • Mendukung tingkat diskon tidak terbatas
+  • Bertingkat melalui field sequence
+  • Dapat mereferensi discount_type_id atau manual
+
+  **Contoh:**
+  seq 1: Member 10% = -Rp 1.000
+  seq 2: Promo 5% = -Rp 450
+  seq 3: Custom Rp 500 = -Rp 500
+  Total diskon: Rp 1.950
+end note
+
+note right of stock_movements
+  **Jejak Audit Stok:**
+  • Melacak semua perubahan stok
+  • in: pembelian/penyesuaian
+  • out: penjualan/penyesuaian
+  • Terhubung ke transaksi jika ada
+
+  **Keuntungan:**
+  • Riwayat stok lengkap
+  • Rekonsiliasi mudah
+  • Kepatuhan audit
+
+  **Permission:**
+  • stock.view
+  • stock.adjustment
+end note
+
+@enduml
